@@ -1,0 +1,65 @@
+name: PR Sifat Nazorati
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    name: Sifat Darvozasi
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Test va Coverage
+        id: coverage
+        run: |
+          npm run test:ci 2>&1 | tee test-output.txt
+          STATUS=${PIPESTATUS[0]}
+          
+          # Coverage foizini JSON dan olish
+          LINES=$(node -e "const d = require('./coverage/coverage-summary.json'); console.log(d.total.lines.pct.toFixed(1))")
+          FUNCS=$(node -e "const d = require('./coverage/coverage-summary.json'); console.log(d.total.functions.pct.toFixed(1))")
+          BRANCHES=$(node -e "const d = require('./coverage/coverage-summary.json'); console.log(d.total.branches.pct.toFixed(1))")
+          
+          echo "lines=${LINES}" >> $GITHUB_OUTPUT
+          echo "functions=${FUNCS}" >> $GITHUB_OUTPUT
+          echo "branches=${BRANCHES}" >> $GITHUB_OUTPUT
+          echo "status=${STATUS}" >> $GITHUB_OUTPUT
+          exit $STATUS
+
+      - name: Coverage hisobotni saqlash
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: PR'ga test natijasi comment yozish
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request' && always()
+        with:
+          header: coverage-report
+          message: |
+            ## Sifat Nazorati Natijasi
+
+            | Metrika       | Natija | Minimal |
+            |---------------|--------|---------|
+            | Satrlar       | ${{ steps.coverage.outputs.lines }}% | 80% |
+            | Funksiyalar   | ${{ steps.coverage.outputs.functions }}% | 80% |
+            | Tarmoqlar     | ${{ steps.coverage.outputs.branches }}% | 80% |
+            | Test holati   | ${{ steps.coverage.outcome }} | PASS |
+
+            > Batafsil: [Coverage hisoboti](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ${{ steps.coverage.outcome == 'success' && 'Merge qilish mumkin! ✅' || 'Xato: testlarni tuzating va coverage 80% ga olib chiqing. ❌' }}

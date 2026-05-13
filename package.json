@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [],
-  "author": "",
+  "author": "Diyorbek",
   "license": "ISC",
   "dependencies": {
     "express": "^5.2.1"
@@ -17,4 +18,13 @@
     "jest": "^30.4.2",
     "supertest": "^7.2.2"
   }
+  "scripts": {
+    "test": "jest",
+    "test:unit": "jest tests/unit --verbose",
+    "test:integration": "jest tests/integration --verbose",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --forceExit --bail",
+    "test:watch": "jest --watch"
+  }
+
 }

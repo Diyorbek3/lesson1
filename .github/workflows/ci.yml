@@ -1,0 +1,41 @@
+# .github/workflows/ci.yml
+name: CI - Test va Coverage
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint
+        run: npx eslint src/ || true
+
+      - name: Test va Coverage (min 80%)
+        run: npm run test:ci
+
+      - name: Coverage hisobotni saqlash
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: coverage/
+          retention-days: 14
+
+      - name: Coverage summary (terminal)
+        if: always()
+        run: cat coverage/coverage-summary.json | node -e "
+          d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+          const t = d.total;
+          console.log('Lines:', t.lines.pct + '%');
+          console.log('Functions:', t.functions.pct + '%');
+          console.log('Branches:', t.branches.pct + '%');
+          "
